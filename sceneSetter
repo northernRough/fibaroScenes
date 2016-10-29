@@ -80,14 +80,6 @@ local lights =
 
 -- Constants 
 
--- IN1 boolean modifier set above for IN1 or IN2 
--- local offOn; if(IN1)then offOn = 10 else offOn = 20 end -- change from off to on ID
--- local onOff; if(IN1)then onOff = 11 else onOff = 21 end -- change from on to off
--- local hold; if(IN1)then hold = 12 else hold = 22 end	-- hold signal
--- local release; if(IN1)then release = 13 else release = 23 end	-- Release signal
--- local double; if(IN1)then double =14 else double = 24 end	-- double click momentory button
--- local triple; if(IN1)then triple = 15 else triple = 25 end	-- triple click momentory button
-
 local offOn 	= 10 -- change from off to on
 local onOff 	= 11 -- change from on to off
 local hold 	= 12 -- hold signal
