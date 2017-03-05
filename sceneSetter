@@ -1,7 +1,7 @@
 --[[
 %% properties
-340 sceneActivation
-348 sceneActivation
+344 sceneActivation
+337 sceneActivation
 %% events
 %% globals
 --]]
@@ -9,25 +9,25 @@
 -- Scene selector for Fibaro Universal Sensor, to control lighting devices
 -- northernRough  October 2016
 
+-- Version 1.0 Initial Version
+
 -- Trigger devices declaration. Assumes Fibaro Universal Sensor Device ID 
 -- (acting as trigger). Add an array for each trigger device
 
 local triggerDetails =  		
 	{
- 		{	switchID	= 340,	-- device ID from properties
- 			input 		= 2		-- change to reflect Input number
+ 		{	switchID	= 337,	-- hallway switch (top of stairs)
+ 			input 		= 2		-- change to reflect Input number (right switch)
   		},
 		{	
-    			switchID	= 348,	-- device ID from properties
-	  		input		= 1		-- change to reflect Input number
+    		switchID	= 344,	-- switch in kitchen near outside
+	  		input		= 2		-- change to reflet input (right switch, of left bank)
   		}
   	}
 
-
-
 -- Adjust text to match global variable that records the current scene level
 -- which ensures that pushing hold starts at the same place as you left off
-local globalLevelForThisScene = "loungeSceneLevel"
+local globalLevelForThisScene = "kitchenSceneLevel"
 
 -- Set light circuit options here. Enter device ID, and actions on type of click
 -- (toggle, ignore, off, on, % level (any number between 0 and 100)
@@ -41,47 +41,51 @@ local globalLevelForThisScene = "loungeSceneLevel"
 -- the milliseconds between stages is set via local variable 'pause'
 
 local lights =			
-	{ 	{ 	deviceID	= 135,  		-- Cord hanging lamp
-    			click		= "ignore",
-  			hold1		= "off",
-    			hold2		= "on",
-    			hold3		= "on",
-  			double		= "on",
-  			triple		= "off"
-  		},		
- 		{ 	deviceID	= 351,  		-- Wall wash
+	{ 	{ 	deviceID	= 321,  		-- main kitchen spots
     			click		= "toggle",
-  			hold1		= 10,
+  			hold1		= 5,
     			hold2		= 20,
     			hold3		= 50,
   			double		= 100,
   			triple		= "off"
   		},		
-  		{ 	deviceID 	= 353,			-- Centre spots
-  			click		= "ignore",		
-  			hold1		= 10,
+ 		{ 	deviceID	= 317,  		-- breakfast spots
+    			click		= "off",
+  			hold1		= 5,
     			hold2		= 20,
     			hold3		= 50,
   			double		= 100,
   			triple		= "off"
-    	},		
-  		{ 	deviceID 	= 355,			-- Window spots
+  		},		
+  		{ 	deviceID 	= 316,			-- splashback
   			click		= "toggle",		
-  			hold1		= 10,
+  			hold1		= 5,
     			hold2		= 20,
     			hold3		= 50,
   			double		= 100,
   			triple		= "off"
-    	},		
-  		{ 	deviceID 	= 406,			-- Piano spots
-  			click		= "off",		
-  			hold1		= "igmore",
+    		},
+ 		{ 	deviceID 	= 391,			-- island spots
+  			click		= "toggle",		
+  			hold1		= 5,
+    			hold2		= 20,
+    			hold3		= 50,
+  			double		= 100,
+  			triple		= "off"
+    	},
+ 		{ 	deviceID 	= 422,			-- pantry lights
+  			click		= "ignore",		
+  			hold1		= "ignore",
     			hold2		= "ignore",
     			hold3		= "ignore",
   			double		= "ignore",
   			triple		= "off"
     	}
     }
+
+
+
+-- Don't modify below here....standard code from Kitchen Master Scene (v1.0)
 
 -- Constants 
 
@@ -92,22 +96,21 @@ local release	= 13 -- Release signal
 local double	= 14 -- double click momentory button
 local triple	= 15 -- triple click momentory button
 
-local IN1 	= 0
-local pause 	= 1500
+local IN1 = 0
+local pause = 1500
 
 -- Variables
 
-local levels	= 3	-- set the summer of Hold levels
-local sceneLevel 	-- reset variable for scene type for hold action
+local levels	= 3		-- set the summer of Hold levels
+local sceneLevel 		-- reset variable for scene type for hold action
 
 -- get the global scene leven for this 
 
-local debugMode1 = false
-local debugMode2 = false
+local debugMode = false
 
 
 if (fibaro:countScenes() > 1) then -- abort if there is a scene already running
-  	if (debugMode1) then fibaro:debug ("too many scenes") end
+  	if (debugMode) then print ("too many scenes") end
   	fibaro:abort()
 end
 
@@ -119,21 +122,21 @@ end
 
 -- Toggle a single circuit, using 'value' to determine turning on or off
 function toggle (device, value)
-	if (debugMode2) then fibaro:debug("Toggle: deviceValue " .. value .. " for device " .. device) end
+    if (debugMode) then fibaro:debug("Toggle: deviceValue " .. value .. " for device " .. device) end
     if (value > 0) then
         fibaro:call(device, "turnOff");
-   		if (debugMode2) then fibaro:debug("Toggle: Circuit Off " .. device) end
+   		if (debugMode) then fibaro:debug("Toggle: Circuit Off " .. device) end
     else
     	fibaro:call(device, "turnOn");
-        if (debugMode2) then fibaro:debug("Toggle: Circuit On " .. device) end
+        if (debugMode) then fibaro:debug("Toggle: Circuit On " .. device) end
     end
 end 
 
 
 -- take action on device circuit dependent on action type
 function setCircuit (device, action, value)
-  	if 		(action == "toggle") then toggle(device, value)
-   	elseif 	(action == "on") then fibaro:call(device, "turnOn")
+ 	if 		(action == "toggle") then toggle(device, value)
+    	elseif 	(action == "on") then fibaro:call(device, "turnOn")
     	elseif 	(action == "off") then fibaro:call(device, "turnOff")
    	elseif 	(action == "ignore") then -- do nothing
     	elseif	(action >= 0 and action <=100) then -- check action is a number between 0 and 100
@@ -158,43 +161,45 @@ if (trigger["type"] == "property") then
 	
   	value = tonumber(fibaro:getValue(trigger["deviceID"], "sceneActivation"))
   	
-  	if (debugMode2) then fibaro:debug ("trigger code from DeviceID " .. trigger["deviceID"] .. " before normalising " .. value) end
+  	if ( debugMode ) then fibaro:debug ("trigger code from DeviceID " .. trigger["deviceID"] .. " before normalising " .. value) end
   	
   	for i = 1, #triggerDetails do
     	
-    	    if (triggerDetails[i].switchID == trigger['deviceID']) then
+    	if (triggerDetails[i].switchID == trigger['deviceID']) then
     		 -- we are expecting this device to trigger - now which button/input?
     		
       		if (triggerDetails[i].input == 2) and (value >= 20 and value <= 25) then
          		triggerValue = value - 10
         		triggerDelta = 10
         		triggerMatch = true
-        		if ( debugMode2) then fibaro:debug ("found trigger match: input " .. 2) end
+        		if ( debugMode ) then fibaro:debug ("found trigger match: input " .. 2) 
+        		end
         	elseif (triggerDetails[i].input == 1) and (value >= 10 and value <= 15) then
-            		triggerValue = value
+            	triggerValue = value
         		triggerMatch = true
-        		if ( debugMode2) then fibaro:debug ("found trigger match: input " .. 1) end
+        		if ( debugMode ) then fibaro:debug ("found trigger match: input " .. 1) 
+        		end
           	end 
 
-      	    end
+      	end
       
 	end
     
   
-  if (triggerMatch ~= true) then 
+    if (triggerMatch ~= true) then 
         -- not the right button pressed. Abort fast.
-        if ( debugMode2) then fibaro:debug ("Not the relevant button pressed on the device") end
+        if ( debugMode ) then fibaro:debug ("Not the relevant button pressed on the device") end
        	fibaro:abort() 
-  end
+  	end
   
-  if ( debugMode2) then fibaro:debug ("trigger code after normalising " .. triggerValue) end
+  	if ( debugMode ) then fibaro:debug ("trigger code after normalising " .. triggerValue) end
   
 elseif (trigger["type"] == "other") then
-    	triggerValue = offOn
-	if ( debugMode2 ) then fibaro:debug ("non device trigger - other") end
+    triggerValue = offOn
+	if ( debugMode ) then fibaro:debug ("non device trigger - other") end
 else
-	fibaro:debug ("bad trigger") 
-    	fibaro:abort()
+	if ( debugMode ) then fibaro:debug ("bad trigger") end
+    fibaro:abort()
 end
 
 -- At this point you know there is a valid trigger, and the Value is normalised 
@@ -210,8 +215,8 @@ if ( -- simple switch click
    (triggerValue == offOn) or (triggerValue == onOff)
 )
 then
-  -- Check special case of toggle which works differently depending on all circuits
-  -- loop from here around the circuits, first to see if any are on
+  	-- Check special case of toggle which works differently depending on all circuits
+    -- loop from here around the circuits, first to see if any are on
     for j = 1, #lights do
     	if (lights[j].click == "toggle") then
         	lights[j].value = tonumber(fibaro:getValue(lights[j].deviceID, "value"))		
@@ -228,7 +233,7 @@ then
            	end
       	end
       	setCircuit (lights[i].deviceID, lights[i].click, lights[i].value)
-      	if (debugMode1) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].click) end
+      	if (debugMode) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].click) end
     end
   
   	-- Reset global scene count as out of scene mode
@@ -237,10 +242,10 @@ then
 elseif -- switch held down
   (triggerValue == hold)
 then
-  	if ( debugMode1) then fibaro:debug("Hold pressed: triggerValue = " .. triggerValue) end
+  	if ( debugMode ) then fibaro:debug("Hold pressed: triggerValue = " .. triggerValue) end
   
 	if (sceneLevel >= 0 and sceneLevel < 9) then
- 		if (debugMode1) then fibaro:debug("sceneLevel is:" .. sceneLevel) end
+ 		if (debugMode) then fibaro:debug("sceneLevel is:" .. sceneLevel) end
 	else
   		print ("Global sceneLevel needed reseting. Was " .. sceneLevel) 
   		fibaro:setGlobal (tostring(globalLevelForThisScene), 0)
@@ -248,23 +253,24 @@ then
   
   	while sceneLevel < (levels * 3) -- give it three hold cycles 
   		do
-    		if ( debugMode1) then fibaro:debug("Scene Level " .. sceneLevel) end
+    		if ( debugMode ) then fibaro:debug("Scene Level " .. sceneLevel) end
+  		
   			
-  		if (sceneLevel % levels == 0) then 
+  			if (sceneLevel % levels == 0) then 
       			for i = 1, #lights do
-    				if (debugMode1) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].hold1) end
+    				if (debugMode) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].hold1) end
    					if (lights[i].hold1 == "toggle") then fibaro:debug ("Hold scene 1 error - using toggle"); fibaro:abort() end
             		setCircuit (lights[i].deviceID, lights[i].hold1)
     			end 
     		elseif (sceneLevel % levels == 1) then 
       			for i = 1, #lights do
-    				if (debugMode1) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].hold2) end
+    				if (debugMode) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].hold2) end
    					if (lights[i].hold2 == "toggle") then fibaro:debug ("Hold scene 2 error - using toggle"); fibaro:abort() end
             		setCircuit (lights[i].deviceID, lights[i].hold2)
     			end 
       		else 
       			for i = 1, #lights do
-    				if (debugMode1) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].hold3) end
+    				if (debugMode) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].hold3) end
    					if (lights[i].hold3 == "toggle") then fibaro:debug ("Hold scene 3 error - using toggle"); fibaro:abort() end
             		setCircuit (lights[i].deviceID, lights[i].hold3)
     			end 
@@ -281,13 +287,13 @@ then
    			checkStatus = checkStatus - triggerDelta	
  			if (checkStatus == release)
     			then
-        			if (debugMode1) then fibaro:debug("Button released") end
+        			if (debugMode) then fibaro:debug("Button released") end
           			sceneLevel = (sceneLevel % levels)
         			fibaro:setGlobal (tostring(globalLevelForThisScene), sceneLevel)
       				fibaro:abort()
     			end
-  	end
-  	sceneLevel = (sceneLevel % levels)
+  		end
+  		sceneLevel = (sceneLevel % levels)
         fibaro:setGlobal (tostring(globalLevelForThisScene), sceneLevel)
   
 elseif -- double click
@@ -311,7 +317,7 @@ elseif -- double click
            	end
       	end
       	setCircuit (lights[i].deviceID, lights[i].double, lights[i].value)
-      	if (debugMode1) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].double) end
+      	if (debugMode) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].double) end
     end 
 
   	-- Reset global scene count as out of scene mode
@@ -338,12 +344,12 @@ elseif -- triple click
            	end
       	end
       	setCircuit (lights[i].deviceID, lights[i].triple, lights[i].value)
-      	if (debugMode1) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].triple) end
+      	if (debugMode) then fibaro:debug ("device " .. lights[i].deviceID .. " action " .. lights[i].triple) end
     end 
   
   	-- Reset global scene count as out of scene mode
   	fibaro:setGlobal (tostring(globalLevelForThisScene), 0)
   
 else -- release
-  if (debugMode1) then fibaro:debug ("release activated outside timer") end
+  if (debugMode) then fibaro:debug ("release activated outside timer") end
 end
